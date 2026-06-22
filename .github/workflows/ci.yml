@@ -1,0 +1,39 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  php-quality-gate:
+    name: PHP quality gate
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          coverage: none
+          tools: composer:v2
+
+      - name: Install Composer dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Lint PHP files
+        run: composer lint
+
+      - name: Check WordPress coding standards
+        run: composer phpcs
+
+      - name: Run PHPUnit tests
+        run: composer test
+
+      - name: Verify plugin ZIP package
+        run: composer build:zip
+
+      - name: Inspect package contents
+        run: unzip -l dist/connectlibrary.zip

@@ -1,0 +1,195 @@
+/**
+ * ConnectLibrary – Print Library Cards admin page styles.
+ * Enqueued only on the Print Cards admin screen.
+ */
+
+/* ── Selection UI ──────────────────────────────────────────────────────────── */
+
+.connectlibrary-print-cards-admin .widefat th.check-column,
+.connectlibrary-print-cards-admin .widefat td.check-column {
+	width: 2.5em;
+}
+
+.connectlibrary-print-cards-admin .submit {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	align-items: center;
+}
+
+.connectlibrary-print-controls {
+	background: #f0f0f1;
+	padding: 12px 16px;
+	border-radius: 4px;
+	margin-bottom: 16px;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 16px;
+	align-items: center;
+}
+
+.connectlibrary-print-search {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	align-items: center;
+	margin: 0 0 16px;
+}
+
+.connectlibrary-print-search input[type="search"] {
+	min-width: 280px;
+}
+
+/* ── Card sheet (print preview page) ─────────────────────────────────────── */
+
+.cl-card-sheet {
+	display: flex;
+	flex-wrap: wrap;
+}
+
+.cl-family-group {
+	width: 100%;
+	page-break-inside: avoid;
+	break-inside: avoid;
+	border-top: 2px solid #ccc;
+	padding-top: 12px;
+	margin-bottom: 12px;
+}
+
+.cl-family-label {
+	font-size: 13px;
+	font-weight: 600;
+	color: #555;
+	margin-bottom: 6px;
+}
+
+.cl-family-members {
+	display: flex;
+	flex-wrap: wrap;
+}
+
+/* ── Individual card ──────────────────────────────────────────────────────── */
+
+.connectlibrary-card-print {
+	border: 1px solid #333;
+	border-radius: 6px;
+	padding: 10px;
+	box-sizing: border-box;
+	font-family: sans-serif;
+	background: #fff;
+	break-inside: avoid;
+	page-break-inside: avoid;
+}
+
+.connectlibrary-card-print h1 {
+	font-size: 11px;
+	margin: 0 0 4px;
+	font-weight: 600;
+	letter-spacing: 0.02em;
+}
+
+.connectlibrary-card-print .borrower-name {
+	font-size: 16px;
+	font-weight: 700;
+	margin: 2px 0;
+}
+
+.connectlibrary-card-print .child-context {
+	font-size: 11px;
+	color: #444;
+	margin: 1px 0;
+}
+
+.connectlibrary-card-print .card-label {
+	font-size: 10px;
+	color: #666;
+	margin: 2px 0;
+}
+
+.connectlibrary-card-print .codes {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	align-items: flex-start;
+	margin-top: 6px;
+}
+
+.connectlibrary-card-print .codes svg {
+	max-width: 100%;
+}
+
+.connectlibrary-card-print .privacy-note {
+	font-size: 9px;
+	color: #888;
+	margin-top: 4px;
+}
+
+/* Cut guides (dashed borders replace solid border-radius) */
+.connectlibrary-card-print.has-cut-guides {
+	border-style: dashed;
+	border-radius: 0;
+}
+
+/* ── Print media ──────────────────────────────────────────────────────────── */
+
+@media print {
+	/* Hide admin chrome */
+	#wpadminbar,
+	#adminmenuwrap,
+	#adminmenuback,
+	#wpfooter,
+	.notice,
+	.update-nag,
+	.wrap > h1,
+	.connectlibrary-print-controls,
+	.cl-print-controls,
+	.cl-skipped-notice,
+	.submit,
+	button {
+		display: none !important;
+	}
+
+	body {
+		margin: 0;
+		padding: 0;
+		background: #fff;
+	}
+
+	/* Remove admin layout wrappers */
+	#wpcontent,
+	#wpbody,
+	#wpbody-content,
+	.wrap {
+		margin: 0 !important;
+		padding: 0 !important;
+		float: none !important;
+	}
+
+	.cl-family-group {
+		border-top: none;
+		padding-top: 0;
+	}
+
+	.cl-family-label {
+		display: none;
+	}
+
+	/* Ensure high contrast for scanner readability */
+	.connectlibrary-card-print {
+		color: #000;
+		background: #fff;
+		-webkit-print-color-adjust: exact;
+		print-color-adjust: exact;
+	}
+
+	/* SVG QR/barcode always black on white */
+	.connectlibrary-card-qr rect[fill="#fff"],
+	.connectlibrary-card-barcode rect[fill="#fff"] {
+		fill: #fff;
+	}
+
+	.connectlibrary-card-qr rect[fill="#111"],
+	.connectlibrary-card-barcode rect[fill="#111"] {
+		fill: #000;
+	}
+}

@@ -1,0 +1,9 @@
+{
+  "name": "connectlibrary",
+  "version": "0.1.0",
+  "private": true,
+  "description": "WordPress plugin foundation for Connect Community Church library catalog and circulation work.",
+  "scripts": {
+    "build:zip": "bash ./bin/build-zip.sh"
+  }
+}

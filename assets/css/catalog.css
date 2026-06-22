@@ -1,0 +1,150 @@
+/* ConnectLibrary public catalog — grid/list layout */
+
+.connectlibrary-catalog {
+	--catalog-cols: 4;
+}
+
+.connectlibrary-catalog__toggle {
+	display: flex;
+	gap: 0.5rem;
+	margin-bottom: 1rem;
+}
+
+.connectlibrary-catalog__toggle-btn {
+	padding: 0.375rem 0.75rem;
+	cursor: pointer;
+	border: 1px solid currentColor;
+	border-radius: 3px;
+	background: transparent;
+	font: inherit;
+}
+
+.connectlibrary-catalog__toggle-btn[aria-pressed="true"] {
+	background: currentColor;
+	color: #fff;
+}
+
+.connectlibrary-catalog__items.is-grid {
+	display: grid;
+	grid-template-columns: repeat(var(--catalog-cols), 1fr);
+	gap: 1.5rem;
+}
+
+.connectlibrary-catalog__items.is-list {
+	display: flex;
+	flex-direction: column;
+	gap: 1rem;
+}
+
+.connectlibrary-catalog__items.is-list .connectlibrary-catalog__book {
+	display: flex;
+	gap: 1rem;
+	align-items: flex-start;
+}
+
+.connectlibrary-catalog__items.is-list .connectlibrary-catalog__cover {
+	flex: 0 0 5rem;
+}
+
+.connectlibrary-catalog__cover img {
+	width: 100%;
+	height: auto;
+	display: block;
+}
+
+.connectlibrary-catalog__cover--placeholder {
+	background: #e0e0e0;
+	aspect-ratio: 2 / 3;
+}
+
+.connectlibrary-catalog__info {
+	flex: 1 1 auto;
+}
+
+.connectlibrary-catalog__title {
+	font-size: 1rem;
+	margin: 0.5rem 0 0.25rem;
+}
+
+.connectlibrary-catalog__title a {
+	text-decoration: none;
+	color: inherit;
+}
+
+.connectlibrary-catalog__title a:hover {
+	text-decoration: underline;
+}
+
+.connectlibrary-catalog__authors,
+.connectlibrary-catalog__series,
+.connectlibrary-catalog__categories,
+.connectlibrary-catalog__age-level {
+	margin: 0.2rem 0;
+	font-size: 0.875rem;
+	color: #555;
+}
+
+.connectlibrary-catalog__availability {
+	display: inline-block;
+	font-size: 0.75rem;
+	padding: 0.125rem 0.5rem;
+	border-radius: 2px;
+	background: #e0e0e0;
+}
+
+.connectlibrary-catalog__availability--available {
+	background: #d4edda;
+	color: #155724;
+}
+
+.connectlibrary-catalog__availability--reserved,
+.connectlibrary-catalog__availability--checked_out,
+.connectlibrary-catalog__availability--waitlist_available {
+	background: #fff3cd;
+	color: #856404;
+}
+
+.connectlibrary-catalog__availability--unavailable {
+	background: #f8d7da;
+	color: #721c24;
+}
+
+.connectlibrary-catalog__empty {
+	grid-column: 1 / -1;
+	padding: 2rem;
+	text-align: center;
+	color: #666;
+}
+
+/* Focus styles: ensure visible focus for all interactive catalog elements */
+.connectlibrary-catalog__toggle-btn:focus,
+.connectlibrary-catalog__toggle-btn:focus-visible {
+	outline: 2px solid currentColor;
+	outline-offset: 2px;
+}
+
+.connectlibrary-catalog__pagination a:focus,
+.connectlibrary-catalog__pagination a:focus-visible {
+	outline: 2px solid currentColor;
+	outline-offset: 2px;
+}
+
+.connectlibrary-catalog__title a:focus,
+.connectlibrary-catalog__title a:focus-visible {
+	outline: 2px solid currentColor;
+	outline-offset: 2px;
+}
+
+.connectlibrary-catalog__cover a:focus,
+.connectlibrary-catalog__cover a:focus-visible {
+	outline: 2px solid currentColor;
+	outline-offset: 2px;
+}
+
+@media (max-width: 900px) {
+	.connectlibrary-catalog { --catalog-cols: 3; }
+}
+
+@media (max-width: 600px) {
+	.connectlibrary-catalog { --catalog-cols: 2; }
+}

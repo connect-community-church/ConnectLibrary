@@ -1,0 +1,31 @@
+# Build artifacts
+/build/
+/dist/*.zip
+
+# Dependencies and caches
+/node_modules/
+/vendor/
+/.cache/
+/.phpunit.cache/
+.phpunit.result.cache
+.phpcs-cache
+
+# Local environment and editor files
+.env
+.env.*
+!docker/.env.example
+*.local
+*.log
+.DS_Store
+.idea/
+.vscode/
+
+# OS/editor swap files
+*~
+*.swp
+
+# Hermes build/review working artifacts
+/.hermes-build*.md
+/.hermes-remediation*.md
+/.hermes-review*.md
+/.review-t_*/

@@ -1,0 +1,217 @@
+/*
+ * ConnectLibrary — public single book detail styles.
+ *
+ * Minimal, theme-friendly CSS scoped to .connectlibrary-book.
+ * All class names carry the connectlibrary- prefix.
+ * Layout, status badge, cover fallback, and responsive stacking only.
+ * Colour never carries meaning alone; each status also shows a text label.
+ */
+
+/* ── Layout ────────────────────────────────────────────────────────────── */
+
+.connectlibrary-book {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 1.5rem;
+	align-items: flex-start;
+	margin-bottom: 2rem;
+}
+
+.connectlibrary-book__sidebar {
+	flex: 0 0 180px;
+	max-width: 180px;
+}
+
+.connectlibrary-book__main {
+	flex: 1 1 300px;
+	min-width: 0;
+}
+
+/* ── Cover image ────────────────────────────────────────────────────────── */
+
+.connectlibrary-book__cover {
+	margin-bottom: 0.75rem;
+}
+
+.connectlibrary-book__cover-image {
+	display: block;
+	width: 100%;
+	height: auto;
+	border-radius: 3px;
+	box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+/* Fallback placeholder when no cover image is available */
+.connectlibrary-book__cover--no-image .connectlibrary-book__cover-placeholder {
+	display: block;
+	width: 100%;
+	padding-bottom: 140%; /* ~book-cover aspect ratio */
+	background: #e8e8e8;
+	border-radius: 3px;
+	position: relative;
+}
+
+.connectlibrary-book__cover--no-image .connectlibrary-book__cover-placeholder::after {
+	content: "\1F4D6"; /* 📖 */
+	font-size: 2.5rem;
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%);
+	line-height: 1;
+}
+
+/* ── Availability status badge ──────────────────────────────────────────── */
+
+.connectlibrary-book__status {
+	display: inline-block;
+	padding: 0.25em 0.6em;
+	border-radius: 3px;
+	font-size: 0.85em;
+	font-weight: 600;
+	border: 1px solid currentColor;
+}
+
+.connectlibrary-book__status--available {
+	color: #1a7a35;
+	background: #eaf7ed;
+}
+
+.connectlibrary-book__status--reserved {
+	color: #7a5c00;
+	background: #fff8e1;
+}
+
+.connectlibrary-book__status--checked-out {
+	color: #8b3a00;
+	background: #fff3ed;
+}
+
+.connectlibrary-book__status--waitlist-available {
+	color: #1a5c7a;
+	background: #e8f4fb;
+}
+
+.connectlibrary-book__status--unavailable {
+	color: #555;
+	background: #f3f3f3;
+}
+
+/* ── Metadata label prefix ──────────────────────────────────────────────── */
+
+.connectlibrary-book__meta-label {
+	font-weight: 600;
+}
+
+/* ── Authors / Series ───────────────────────────────────────────────────── */
+
+.connectlibrary-book__authors,
+.connectlibrary-book__series {
+	margin: 0 0 0.5rem;
+	color: #444;
+}
+
+/* ── Details definition list ────────────────────────────────────────────── */
+
+.connectlibrary-book__details {
+	margin: 1rem 0;
+	display: grid;
+	grid-template-columns: auto;
+	gap: 0.25rem 0;
+}
+
+.connectlibrary-book__detail {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.25rem 0.5rem;
+}
+
+.connectlibrary-book__detail dt {
+	font-weight: 600;
+	min-width: 6rem;
+}
+
+.connectlibrary-book__detail dd {
+	margin: 0;
+}
+
+/* ── Description ────────────────────────────────────────────────────────── */
+
+.connectlibrary-book__description {
+	margin: 1rem 0;
+}
+
+/* ── Recommended badge ──────────────────────────────────────────────────── */
+
+.connectlibrary-book__recommended {
+	margin: 1rem 0;
+}
+
+/* ── Notes sections ─────────────────────────────────────────────────────── */
+
+.connectlibrary-book__content-notes,
+.connectlibrary-book__church-notes {
+	margin: 1rem 0;
+	padding: 0.75rem 1rem;
+	border-left: 3px solid #bbb;
+	background: #fafafa;
+}
+
+.connectlibrary-book__section-heading {
+	font-size: 1.1em;
+	margin: 0 0 0.4rem;
+}
+
+/* ── Taxonomy term groups ────────────────────────────────────────────────── */
+
+.connectlibrary-book__terms {
+	margin: 0.5rem 0;
+	font-size: 0.9em;
+}
+
+.connectlibrary-book__term-link {
+	text-decoration: underline;
+}
+
+/* ── Location section ───────────────────────────────────────────────────── */
+
+.connectlibrary-book__location {
+	margin: 1rem 0;
+}
+
+.connectlibrary-book__location-detail {
+	margin: 0.25rem 0 0;
+}
+
+/* ── Back-to-catalog navigation ─────────────────────────────────────────── */
+
+.connectlibrary-book__navigation {
+	margin-top: 1.5rem;
+	padding-top: 1rem;
+	border-top: 1px solid #ddd;
+}
+
+.connectlibrary-book__back-link {
+	font-size: 0.9em;
+	text-decoration: underline;
+}
+
+/* Focus styles — preserve theme defaults; only ensure visibility */
+.connectlibrary-book__back-link:focus,
+.connectlibrary-book__term-link:focus {
+	outline: 2px solid currentColor;
+	outline-offset: 2px;
+}
+
+/* ── Responsive stacking ────────────────────────────────────────────────── */
+
+@media (max-width: 600px) {
+	.connectlibrary-book {
+		flex-direction: column;
+	}
+
+	.connectlibrary-book__sidebar {
+		flex: 0 0 auto;
+		max-width: 160px;
+	}
+}

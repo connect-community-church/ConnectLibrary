@@ -1,0 +1,210 @@
+/* My Library – borrower-facing account view */
+
+.connectlibrary-my-library {
+	margin: 1.5rem 0;
+}
+
+.connectlibrary-my-library__header,
+.connectlibrary-my-library__card,
+.connectlibrary-my-library__account {
+	border: 1px solid #d9dee7;
+	border-radius: 0.75rem;
+	background: #fff;
+	padding: 1rem;
+}
+
+.connectlibrary-my-library__heading,
+.connectlibrary-my-library__account-name,
+.connectlibrary-my-library__message,
+.connectlibrary-my-library__intro,
+.connectlibrary-my-library__status-message {
+	margin-top: 0;
+}
+
+.connectlibrary-my-library__sections {
+	display: grid;
+	gap: 1rem;
+	margin-top: 1rem;
+}
+
+.connectlibrary-my-library__account-header {
+	display: flex;
+	flex-direction: column;
+	gap: 0.25rem;
+	margin-bottom: 0.75rem;
+}
+
+.connectlibrary-my-library__account-label {
+	font-size: 0.875rem;
+	font-weight: 700;
+	letter-spacing: 0.02em;
+	margin: 0;
+	text-transform: uppercase;
+}
+
+/* ── Renewal notices ─────────────────────────────────────────── */
+
+.connectlibrary-my-library__renewal-success,
+.connectlibrary-my-library__renewal-error {
+	border-radius: 0.5rem;
+	margin: 0.75rem 0;
+	padding: 0.75rem 1rem;
+}
+
+.connectlibrary-my-library__renewal-success {
+	background: #e6f4ea;
+	border: 1px solid #5cb85c;
+	color: #1a5c1a;
+}
+
+.connectlibrary-my-library__renewal-error {
+	background: #fdecea;
+	border: 1px solid #d9534f;
+	color: #6b1111;
+}
+
+.connectlibrary-my-library__renewal-success p,
+.connectlibrary-my-library__renewal-error p {
+	margin: 0;
+}
+
+/* ── Active checkouts ────────────────────────────────────────── */
+
+.connectlibrary-my-library__loans {
+	margin-top: 0.5rem;
+}
+
+.connectlibrary-my-library__loans-empty {
+	color: #6b7280;
+	font-size: 0.9rem;
+	margin: 0;
+}
+
+.connectlibrary-my-library__loan-list {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+}
+
+.connectlibrary-my-library__loan-item {
+	background: #f6f8fb;
+	border-radius: 0.5rem;
+	display: flex;
+	flex-direction: column;
+	gap: 0.35rem;
+	margin-bottom: 0.625rem;
+	padding: 0.75rem;
+}
+
+.connectlibrary-my-library__loan-item:last-child {
+	margin-bottom: 0;
+}
+
+.connectlibrary-my-library__loan-title {
+	font-weight: 600;
+}
+
+.connectlibrary-my-library__loan-due {
+	font-size: 0.875rem;
+}
+
+.connectlibrary-my-library__loan-due--current {
+	color: #374151;
+}
+
+.connectlibrary-my-library__loan-due--overdue {
+	color: #c0392b;
+	font-weight: 700;
+}
+
+/* ── Renewal form and button ─────────────────────────────────── */
+
+.connectlibrary-my-library__renew-form {
+	margin-top: 0.25rem;
+}
+
+.connectlibrary-my-library__renew-btn {
+	background: #2563eb;
+	border: none;
+	border-radius: 0.375rem;
+	color: #fff;
+	cursor: pointer;
+	font-size: 0.8125rem;
+	font-weight: 600;
+	padding: 0.375rem 0.75rem;
+	transition: background 0.15s ease;
+}
+
+.connectlibrary-my-library__renew-btn:hover,
+.connectlibrary-my-library__renew-btn:focus {
+	background: #1d4ed8;
+	outline: 2px solid #1d4ed8;
+	outline-offset: 2px;
+}
+
+/* ── Reservations, holds, and waitlist ───────────────────────── */
+
+.connectlibrary-my-library__reservations {
+	border-top: 1px solid #e5e7eb;
+	margin-top: 0.75rem;
+	padding-top: 0.75rem;
+}
+
+.connectlibrary-my-library__reservation-list {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+}
+
+.connectlibrary-my-library__reservation-item {
+	display: flex;
+	flex-direction: column;
+	gap: 0.2rem;
+	margin-bottom: 0.5rem;
+	padding: 0.5rem 0;
+}
+
+.connectlibrary-my-library__reservation-item:last-child {
+	margin-bottom: 0;
+}
+
+.connectlibrary-my-library__reservation-title {
+	font-weight: 600;
+}
+
+.connectlibrary-my-library__reservation-status {
+	color: #374151;
+	font-size: 0.875rem;
+}
+
+.connectlibrary-my-library__reservation-expiry {
+	color: #6b7280;
+	font-size: 0.8125rem;
+}
+
+/* ── Responsive layout ───────────────────────────────────────── */
+
+@media (min-width: 48rem) {
+	.connectlibrary-my-library__sections {
+		grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr));
+	}
+
+	.connectlibrary-my-library__loan-item {
+		flex-direction: row;
+		align-items: center;
+		flex-wrap: wrap;
+		gap: 0.5rem;
+	}
+
+	.connectlibrary-my-library__loan-title {
+		flex: 1 1 60%;
+	}
+
+	.connectlibrary-my-library__loan-due {
+		flex: 0 0 auto;
+	}
+
+	.connectlibrary-my-library__renew-form {
+		margin-top: 0;
+	}
+}
