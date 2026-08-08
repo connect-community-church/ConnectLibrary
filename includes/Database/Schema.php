@@ -21,7 +21,7 @@ final class Schema {
 	/**
 	 * Current ConnectLibrary schema version.
 	 */
-	public const VERSION = '1.6.1';
+	public const VERSION = '1.6.2';
 
 	/**
 	 * Build table names using the active WordPress table prefix.
@@ -219,6 +219,7 @@ final class Schema {
 			'borrowers'           => "CREATE TABLE {$tables['borrowers']} (
 	id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
 	borrower_type varchar(20) NOT NULL DEFAULT 'manual',
+	borrower_category varchar(40) NOT NULL DEFAULT 'in_person',
 	wp_user_id bigint(20) unsigned DEFAULT NULL,
 	status varchar(20) NOT NULL DEFAULT 'active',
 	display_name varchar(255) NOT NULL,
@@ -242,6 +243,7 @@ final class Schema {
 	KEY wp_user_id (wp_user_id),
 	KEY email (email),
 	KEY borrower_type (borrower_type),
+	KEY borrower_category (borrower_category),
 	KEY status (status),
 	KEY guardian_borrower_id (guardian_borrower_id),
 	KEY created_at (created_at),

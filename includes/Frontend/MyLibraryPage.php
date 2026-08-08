@@ -7,6 +7,7 @@
 
 namespace ConnectLibrary\Frontend;
 
+use ConnectLibrary\Borrowers\BorrowerCardService;
 use ConnectLibrary\Borrowers\BorrowerRepository;
 use ConnectLibrary\Borrowers\GuestAccessTokenService;
 use ConnectLibrary\Circulation\LoanService;
@@ -64,6 +65,13 @@ final class MyLibraryPage {
 	private ReservationService $reservation_service;
 
 	/**
+	 * Borrower card service dependency.
+	 *
+	 * @var BorrowerCardService
+	 */
+	private BorrowerCardService $card_service;
+
+	/**
 	 * Create renderer dependencies.
 	 *
 	 * @param BorrowerRepository|null      $repository          Optional repository override.
@@ -71,19 +79,22 @@ final class MyLibraryPage {
 	 * @param LoanService|null             $loan_service        Optional loan service override.
 	 * @param ReservationRepository|null   $reservation_repo    Optional reservation repository override.
 	 * @param ReservationService|null      $reservation_service Optional reservation service override.
+	 * @param BorrowerCardService|null     $card_service        Optional card service override.
 	 */
 	public function __construct(
 		?BorrowerRepository $repository = null,
 		?GuestAccessTokenService $guest_tokens = null,
 		?LoanService $loan_service = null,
 		?ReservationRepository $reservation_repo = null,
-		?ReservationService $reservation_service = null
+		?ReservationService $reservation_service = null,
+		?BorrowerCardService $card_service = null
 	) {
 		$this->repository          = $repository ?? new BorrowerRepository();
 		$this->guest_tokens        = $guest_tokens ?? new GuestAccessTokenService( null, $this->repository );
 		$this->loan_service        = $loan_service ?? new LoanService();
 		$this->reservation_repo    = $reservation_repo ?? new ReservationRepository();
 		$this->reservation_service = $reservation_service ?? new ReservationService( $this->reservation_repo );
+		$this->card_service        = $card_service ?? new BorrowerCardService( null, $this->repository );
 	}
 
 	/** Register shortcode and assets. */
@@ -198,6 +209,15 @@ final class MyLibraryPage {
 
 		$renewal_notice      = $this->handle_renewal_request( $authorized_borrowers );
 		$cancellation_notice = $this->handle_cancellation_request( $authorized_borrowers );
+		$child_notice        = $guest_access ? null : $this->handle_add_child_request( $borrower );
+		if ( null !== $child_notice ) {
+			$children             = $this->active_children_for_guardian( (int) $borrower['id'] );
+			$authorized_borrowers = array( $borrower );
+			foreach ( $children as $child ) {
+				$authorized_borrowers[] = $child;
+			}
+		}
+		$card_notice = $guest_access ? null : $this->handle_card_request( $authorized_borrowers );
 
 		$classes = 'connectlibrary-my-library';
 		if ( $guest_access ) {
@@ -220,6 +240,14 @@ final class MyLibraryPage {
 			$out .= $cancellation_notice;
 		}
 
+		if ( null !== $child_notice ) {
+			$out .= $child_notice;
+		}
+
+		if ( null !== $card_notice ) {
+			$out .= $card_notice;
+		}
+
 		$out .= '<div class="connectlibrary-my-library__sections">';
 
 		$self_label = $guest_access ? __( 'Guest library account', 'connectlibrary' ) : __( 'Your library account', 'connectlibrary' );
@@ -229,6 +257,7 @@ final class MyLibraryPage {
 			foreach ( $children as $idx => $child ) {
 				$out .= $this->render_account_section( $child, __( 'Linked child account', 'connectlibrary' ), 'child', $idx + 1 );
 			}
+			$out .= $this->render_add_child_form();
 		}
 
 		$out .= '</div></section>';
@@ -367,6 +396,136 @@ final class MyLibraryPage {
 	}
 
 	/**
+	 * Process parent self-service child borrower creation.
+	 *
+	 * @param array<string,mixed> $guardian Guardian borrower row.
+	 */
+	private function handle_add_child_request( array $guardian ): ?string {
+		$action = isset( $_POST['connectlibrary_action'] )
+			? sanitize_key( wp_unslash( $_POST['connectlibrary_action'] ) )
+			: '';
+		if ( 'add_child' !== $action ) {
+			return null;
+		}
+
+		$nonce = isset( $_POST['_cl_child_nonce'] ) ? sanitize_text_field( wp_unslash( $_POST['_cl_child_nonce'] ) ) : '';
+		if ( ! wp_verify_nonce( $nonce, 'connectlibrary-add-child' ) ) {
+			return $this->render_child_notice( false, __( 'Security check failed. Please try again.', 'connectlibrary' ) );
+		}
+
+		$name = sanitize_text_field( wp_unslash( $_POST['child_name'] ?? '' ) );
+		if ( '' === $name ) {
+			return $this->render_child_notice( false, __( 'Please enter the child borrower name.', 'connectlibrary' ) );
+		}
+
+		$now         = current_time( 'mysql' );
+		$guardian_id = (int) ( $guardian['id'] ?? 0 );
+		$id          = $this->repository->insert(
+			array(
+				'borrower_type'         => 'child',
+				'wp_user_id'            => null,
+				'status'                => 'active',
+				'display_name'          => $name,
+				'preferred_name'        => null,
+				'email'                 => null,
+				'phone'                 => null,
+				'guardian_borrower_id'  => $guardian_id,
+				'guardian_name'         => (string) ( $guardian['display_name'] ?? '' ),
+				'guardian_email'        => $guardian['email'] ?? null,
+				'guardian_phone'        => $guardian['phone'] ?? null,
+				'guardian_relationship' => __( 'Parent/guardian', 'connectlibrary' ),
+				'email_notices_allowed' => 0,
+				'private_notes'         => null,
+				'created_at'            => $now,
+				'updated_at'            => $now,
+				'created_by'            => function_exists( 'get_current_user_id' ) ? get_current_user_id() : null,
+				'updated_by'            => function_exists( 'get_current_user_id' ) ? get_current_user_id() : null,
+			)
+		);
+		$this->repository->audit( $id, 'child_self_service_create', array( 'guardian_borrower_id', 'display_name' ) );
+
+		return $this->render_child_notice( true, __( 'Child borrower added.', 'connectlibrary' ) );
+	}
+
+	/**
+	 * Process user self-service library card generation.
+	 *
+	 * @param array<int,array<string,mixed>> $authorized_borrowers Borrowers visible to current user.
+	 */
+	private function handle_card_request( array $authorized_borrowers ): ?string {
+		$action = isset( $_POST['connectlibrary_action'] ) ? sanitize_key( wp_unslash( $_POST['connectlibrary_action'] ) ) : '';
+		if ( 'generate_card' !== $action ) {
+			return null;
+		}
+		$nonce = isset( $_POST['_cl_card_nonce'] ) ? sanitize_text_field( wp_unslash( $_POST['_cl_card_nonce'] ) ) : '';
+		if ( ! wp_verify_nonce( $nonce, 'connectlibrary-generate-card' ) ) {
+			return $this->render_card_notice( false, __( 'Security check failed. Please try again.', 'connectlibrary' ) );
+		}
+		$ref      = sanitize_key( (string) wp_unslash( $_POST['card_borrower'] ?? 'self' ) );
+		$borrower = $authorized_borrowers[0] ?? null;
+		if ( str_starts_with( $ref, 'child_' ) ) {
+			$idx      = absint( substr( $ref, 6 ) );
+			$borrower = $authorized_borrowers[ $idx ] ?? null;
+		}
+		if ( ! is_array( $borrower ) ) {
+			return $this->render_card_notice( false, __( 'Unable to find that borrower for this account.', 'connectlibrary' ) );
+		}
+		$result = $this->card_service->generate_first_card( (int) ( $borrower['id'] ?? 0 ) );
+		if ( is_wp_error( $result ) && 'connectlibrary_card_already_active' !== $result->get_error_code() ) {
+			return $this->render_card_notice( false, __( 'Unable to create that card. Please contact the librarian.', 'connectlibrary' ) );
+		}
+		return $this->render_card_notice( true, __( 'Library card ready to print.', 'connectlibrary' ) );
+	}
+
+	/**
+	 * Render an add-child success or error notice.
+	 *
+	 * @param bool   $success Whether the action succeeded.
+	 * @param string $message Notice message.
+	 */
+	private function render_child_notice( bool $success, string $message ): string {
+		$class = $success ? 'connectlibrary-my-library__child-success' : 'connectlibrary-my-library__child-error';
+		return '<div class="' . esc_attr( $class ) . '" role="' . esc_attr( $success ? 'status' : 'alert' ) . '"><p>' . esc_html( $message ) . '</p></div>';
+	}
+
+	/**
+	 * Render a library-card success or error notice.
+	 *
+	 * @param bool   $success Whether the action succeeded.
+	 * @param string $message Notice message.
+	 */
+	private function render_card_notice( bool $success, string $message ): string {
+		$class = $success ? 'connectlibrary-my-library__card-success' : 'connectlibrary-my-library__card-error';
+		return '<div class="' . esc_attr( $class ) . '" role="' . esc_attr( $success ? 'status' : 'alert' ) . '"><p>' . esc_html( $message ) . '</p></div>';
+	}
+
+	/** Render parent self-service child borrower form. */
+	private function render_add_child_form(): string {
+		return '<article class="connectlibrary-my-library__add-child"><h3>' . esc_html__( 'Add a child borrower', 'connectlibrary' ) . '</h3><form method="post"><input type="hidden" name="connectlibrary_action" value="add_child"><input type="hidden" name="_cl_child_nonce" value="' . esc_attr( wp_create_nonce( 'connectlibrary-add-child' ) ) . '"><label>' . esc_html__( 'Child name', 'connectlibrary' ) . '<input type="text" name="child_name" required autocomplete="off"></label><button type="submit">' . esc_html__( 'Add child borrower', 'connectlibrary' ) . '</button></form></article>';
+	}
+
+	/**
+	 * Render self-service library-card section.
+	 *
+	 * @param array<string,mixed> $borrower     Borrower row.
+	 * @param string              $context      self|child.
+	 * @param int                 $borrower_idx Borrower index in authorized-borrowers list.
+	 */
+	private function render_card_section( array $borrower, string $context, int $borrower_idx = 0 ): string {
+		$borrower_id = (int) ( $borrower['id'] ?? 0 );
+		$card        = $this->card_service->active_card( $borrower_id );
+		$out         = '<section class="connectlibrary-my-library__card" aria-label="' . esc_attr__( 'Library card', 'connectlibrary' ) . '"><h4>' . esc_html__( 'Library Card', 'connectlibrary' ) . '</h4>';
+		if ( is_wp_error( $card ) ) {
+			$ref  = 'child' === $context ? 'child_' . (string) $borrower_idx : 'self';
+			$out .= '<p>' . esc_html__( 'No active card yet.', 'connectlibrary' ) . '</p><form method="post"><input type="hidden" name="connectlibrary_action" value="generate_card"><input type="hidden" name="card_borrower" value="' . esc_attr( $ref ) . '"><input type="hidden" name="_cl_card_nonce" value="' . esc_attr( wp_create_nonce( 'connectlibrary-generate-card' ) ) . '"><button type="submit">' . esc_html__( 'Create printable card', 'connectlibrary' ) . '</button></form></section>';
+			return $out;
+		}
+		$rendered = $this->card_service->render_single_card( $card );
+		$out     .= is_wp_error( $rendered ) ? '<p>' . esc_html__( 'Card unavailable. Please contact the librarian.', 'connectlibrary' ) . '</p>' : $rendered;
+		return $out . '</section>';
+	}
+
+	/**
 	 * Render one borrower-safe account section with loans and reservations.
 	 *
 	 * @param array<string,mixed> $borrower     Borrower row.
@@ -388,6 +547,10 @@ final class MyLibraryPage {
 		$out .= '<p class="connectlibrary-my-library__account-label">' . esc_html( $label ) . '</p>';
 		$out .= '<h3 class="connectlibrary-my-library__account-name">' . esc_html( $name ) . '</h3>';
 		$out .= '</div>';
+
+		if ( 'guest' !== $context ) {
+			$out .= $this->render_card_section( $borrower, $context, $borrower_idx );
+		}
 
 		// Active checkouts section.
 		$out .= '<section class="connectlibrary-my-library__loans" aria-label="' . esc_attr__( 'Current checkouts', 'connectlibrary' ) . '">';

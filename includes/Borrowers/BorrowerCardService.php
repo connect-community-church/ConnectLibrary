@@ -217,11 +217,18 @@ final class BorrowerCardService {
 	}
 
 	public static function payload_for_token( string $token ): string {
-		return 'CLCARD-' . trim( $token );
+		return trim( $token );
+	}
+
+	public static function card_number_for_borrower( int $borrower_id ): string {
+		return 'CL-' . str_pad( (string) $borrower_id, 6, '0', STR_PAD_LEFT );
 	}
 
 	public function extract_token( string $payload ): string {
 		$value = trim( $payload );
+		if ( 1 === preg_match( '/^(CL-\d{6,})$/', $value, $matches ) ) {
+			return $matches[1];
+		}
 		if ( 1 === preg_match( '/^CLCARD[-:]([A-Za-z0-9]{32,})$/', $value, $matches ) ) {
 			return $matches[1];
 		}
@@ -246,45 +253,45 @@ final class BorrowerCardService {
 		if ( is_wp_error( $borrower ) ) {
 			return $borrower;
 		}
-		for ( $attempt = 0; $attempt < 5; ++$attempt ) {
-			$token = $this->new_plaintext_token();
-			$hash  = self::hash_token( $token );
-			if ( array() !== $this->cards->find_all_by_hash( $hash ) ) {
-				continue;
+		$token    = self::card_number_for_borrower( $borrower_id );
+		$hash     = self::hash_token( $token );
+		$existing = $this->cards->find_all_by_hash( $hash );
+		foreach ( $existing as $card ) {
+			if ( (int) ( $card['borrower_id'] ?? 0 ) !== $borrower_id ) {
+				return new WP_Error( 'connectlibrary_card_number_collision', __( 'That library card number is already assigned to another borrower.', 'connectlibrary' ), array( 'status' => 500 ) );
 			}
-			$now = current_time( 'mysql' );
-			$row = array(
-				'borrower_id'           => $borrower_id,
-				'token_hash'            => $hash,
-				'payload'               => self::payload_for_token( $token ),
-				'card_label'            => 'CL-' . str_pad( (string) $borrower_id, 6, '0', STR_PAD_LEFT ),
-				'status'                => self::STATUS_ACTIVE,
-				'replaces_card_id'      => $replaces_card_id > 0 ? $replaces_card_id : null,
-				'superseded_by_card_id' => null,
-				'replacement_reason'    => $metadata['replacement_reason'] ?? null,
-				'replacement_note'      => $metadata['replacement_note'] ?? null,
-				'audit_correlation_id'  => $metadata['audit_correlation_id'] ?? null,
-				'created_at'            => $now,
-				'created_by'            => $this->current_user_id_or_null(),
-				'updated_at'            => $now,
-				'updated_by'            => $this->current_user_id_or_null(),
-				'disabled_at'           => null,
-				'replaced_at'           => null,
-			);
-			$id  = $this->cards->insert( $row );
-			if ( $id <= 0 ) {
-				return new WP_Error( 'connectlibrary_card_insert_failed', __( 'Unable to save the new library card. The existing active card was left unchanged.', 'connectlibrary' ), array( 'status' => 500 ) );
-			}
-			$row['id'] = $id;
-			if ( $audit ) {
-				$this->audit_card_event( 'card_' . $event, $borrower_id, (int) $row['id'], 'Library card ' . $event . '.' );
-			}
-			return array(
-				'token' => $token,
-				'row'   => $row,
-			);
 		}
-		return new WP_Error( 'connectlibrary_card_token_collision', __( 'Unable to generate a unique card token. Please try again.', 'connectlibrary' ), array( 'status' => 500 ) );
+		$now = current_time( 'mysql' );
+		$row = array(
+			'borrower_id'           => $borrower_id,
+			'token_hash'            => $hash,
+			'payload'               => self::payload_for_token( $token ),
+			'card_label'            => $token,
+			'status'                => self::STATUS_ACTIVE,
+			'replaces_card_id'      => $replaces_card_id > 0 ? $replaces_card_id : null,
+			'superseded_by_card_id' => null,
+			'replacement_reason'    => $metadata['replacement_reason'] ?? null,
+			'replacement_note'      => $metadata['replacement_note'] ?? null,
+			'audit_correlation_id'  => $metadata['audit_correlation_id'] ?? null,
+			'created_at'            => $now,
+			'created_by'            => $this->current_user_id_or_null(),
+			'updated_at'            => $now,
+			'updated_by'            => $this->current_user_id_or_null(),
+			'disabled_at'           => null,
+			'replaced_at'           => null,
+		);
+		$id  = $this->cards->insert( $row );
+		if ( $id <= 0 ) {
+			return new WP_Error( 'connectlibrary_card_insert_failed', __( 'Unable to save the new library card. The existing active card was left unchanged.', 'connectlibrary' ), array( 'status' => 500 ) );
+		}
+		$row['id'] = $id;
+		if ( $audit ) {
+			$this->audit_card_event( 'card_' . $event, $borrower_id, (int) $row['id'], 'Library card ' . $event . '.' );
+		}
+		return array(
+			'token' => $token,
+			'row'   => $row,
+		);
 	}
 
 	/** @return array<string,mixed>|WP_Error */

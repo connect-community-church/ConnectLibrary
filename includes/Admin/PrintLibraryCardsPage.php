@@ -97,13 +97,16 @@ final class PrintLibraryCardsPage {
 			return;
 		}
 
-		$search = ScannerInput::sanitize_text( wp_unslash( $_GET['s'] ?? '' ) );
-		$active = $this->borrower_repo->search(
-			array(
-				'search' => $search,
-				'status' => 'active',
-			)
+		$search   = ScannerInput::sanitize_text( wp_unslash( $_GET['s'] ?? '' ) );
+		$category = sanitize_key( wp_unslash( $_GET['borrower_category'] ?? 'in_person' ) );
+		$args     = array(
+			'search' => $search,
+			'status' => 'active',
 		);
+		if ( '' !== $category ) {
+			$args['borrower_category'] = $category;
+		}
+		$active = $this->borrower_repo->search( $args );
 		?>
 		<div class="wrap connectlibrary-print-cards-admin">
 			<h1><?php echo esc_html__( 'Print Library Cards', 'connectlibrary' ); ?></h1>
@@ -111,7 +114,7 @@ final class PrintLibraryCardsPage {
 
 			<?php $this->render_layout_controls(); ?>
 
-			<?php $this->render_search_filter( $search, count( $active ) ); ?>
+			<?php $this->render_search_filter( $search, $category, count( $active ) ); ?>
 
 			<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" id="connectlibrary-print-cards-form">
 				<?php wp_nonce_field( self::NONCE_ACTION, '_wpnonce' ); ?>
@@ -249,7 +252,7 @@ final class PrintLibraryCardsPage {
 	}
 
 	/** Render server-side borrower search/filter controls for sheet selection. */
-	private function render_search_filter( string $search, int $result_count ): void {
+	private function render_search_filter( string $search, string $category, int $result_count ): void {
 		?>
 		<form method="get" class="connectlibrary-print-search" action="<?php echo esc_url( admin_url( 'edit.php' ) ); ?>">
 			<input type="hidden" name="post_type" value="<?php echo esc_attr( BookPostType::POST_TYPE ); ?>" />
@@ -262,8 +265,14 @@ final class PrintLibraryCardsPage {
 				value="<?php echo esc_attr( $search ); ?>"
 				placeholder="<?php echo esc_attr__( 'Name, preferred name, or email', 'connectlibrary' ); ?>"
 			/>
+			<select name="borrower_category" aria-label="<?php echo esc_attr__( 'Borrower category', 'connectlibrary' ); ?>">
+				<option value=""><?php echo esc_html__( 'All categories', 'connectlibrary' ); ?></option>
+				<?php foreach ( $this->category_choices() as $value => $label ) : ?>
+					<option value="<?php echo esc_attr( $value ); ?>" <?php selected( $category, $value ); ?>><?php echo esc_html( $label ); ?></option>
+				<?php endforeach; ?>
+			</select>
 			<button type="submit" class="button"><?php echo esc_html__( 'Filter borrowers', 'connectlibrary' ); ?></button>
-			<?php if ( '' !== $search ) : ?>
+			<?php if ( '' !== $search || '' !== $category ) : ?>
 				<a class="button" href="<?php echo esc_url( $this->page_url() ); ?>"><?php echo esc_html__( 'Clear filter', 'connectlibrary' ); ?></a>
 			<?php endif; ?>
 			<span class="description">
@@ -289,6 +298,7 @@ final class PrintLibraryCardsPage {
 					<td class="check-column"><input type="checkbox" id="cl-check-all-header" aria-label="<?php echo esc_attr__( 'Select all borrowers', 'connectlibrary' ); ?>" /></td>
 					<th scope="col"><?php echo esc_html__( 'Borrower', 'connectlibrary' ); ?></th>
 					<th scope="col"><?php echo esc_html__( 'Type', 'connectlibrary' ); ?></th>
+					<th scope="col"><?php echo esc_html__( 'Category', 'connectlibrary' ); ?></th>
 					<th scope="col"><?php echo esc_html__( 'Card status', 'connectlibrary' ); ?></th>
 				</tr>
 			</thead>
@@ -316,6 +326,7 @@ final class PrintLibraryCardsPage {
 					</td>
 					<td><label for="cl-borrower-<?php echo esc_attr( (string) $bid ); ?>"><?php echo esc_html( (string) ( $borrower['display_name'] ?? '' ) ); ?></label></td>
 					<td><?php echo esc_html( $this->type_label( (string) ( $borrower['borrower_type'] ?? '' ) ) ); ?></td>
+					<td><?php echo esc_html( $this->category_label( (string) ( $borrower['borrower_category'] ?? 'in_person' ) ) ); ?></td>
 					<td>
 						<?php if ( $has_card ) : ?>
 							<span style="color:#00a32a;">&#10003; <?php echo esc_html( (string) ( $active[0]['card_label'] ?? '' ) ); ?></span>
@@ -494,7 +505,6 @@ final class PrintLibraryCardsPage {
 	 * @param bool                                                                                                                                     $is_demo     Whether this is a fake-data alignment preview.
 	 */
 	private function render_print_preview( array $printable, ?array $grouped, array $skipped, string $card_size, string $orientation, bool $cut_guides, bool $is_demo = false ): void {
-		$size_css = $this->card_size_css( $card_size );
 		?>
 		<!doctype html>
 		<html lang="en">
@@ -514,23 +524,23 @@ final class PrintLibraryCardsPage {
 				.cl-family-label{font-size:13px;font-weight:600;color:#555;margin-bottom:6px}
 				.cl-family-members{display:flex;flex-wrap:wrap;gap:<?php echo esc_attr( $cut_guides ? '0' : '16px' ); ?>}
 				.connectlibrary-card-print{
-					<?php echo esc_attr( $size_css ); ?>
+					width:2.5in;height:1.9in;
 					border:1px solid #333;
 					<?php echo $cut_guides ? 'border-style:dashed;' : 'border-radius:6px;'; ?>
-					padding:10px;
+					padding:5px;
 					break-inside:avoid;
 					page-break-inside:avoid;
 					box-sizing:border-box;
 					font-family:sans-serif;
 					background:#fff;
 				}
-				.connectlibrary-card-print h1{font-size:11px;margin:0 0 4px;font-weight:600;letter-spacing:.02em}
-				.borrower-name{font-size:16px;font-weight:700;margin:2px 0}
-				.child-context{font-size:11px;color:#444;margin:1px 0}
-				.card-label{font-size:10px;color:#666;margin:2px 0}
-				.codes{display:flex;flex-direction:<?php echo 'landscape' === $orientation ? 'row' : 'column'; ?>;gap:4px;align-items:flex-start;margin-top:6px}
-				.codes svg{max-width:100%}
-				.privacy-note{font-size:9px;color:#888;margin-top:4px}
+				.borrower-name{font-size:12px;font-weight:700;margin:0 0 2px;line-height:1.1;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+				.child-context{font-size:9px;color:#444;margin:0 0 1px;text-align:center}
+				.card-label{font-size:10px;font-weight:700;color:#111;margin:0 0 3px;line-height:1;text-align:center}
+				.card-label-prefix{font-weight:600;color:#555}
+				.codes{display:flex;flex-direction:column;gap:3px;align-items:center;justify-content:flex-start;margin-top:1px}
+				.qr-wrap svg,.qr-wrap img{width:.92in!important;height:.92in!important;display:block}
+				.barcode-wrap svg{width:2.05in!important;height:.42in!important;display:block;max-width:100%}
 				<?php if ( $cut_guides ) : ?>
 				.cut-guide-h{width:100%;border:none;border-top:1px dashed #aaa;margin:0}
 				.cut-guide-v{height:100%;border:none;border-left:1px dashed #aaa;margin:0}
@@ -658,12 +668,10 @@ final class PrintLibraryCardsPage {
 		}
 
 		return '<section class="connectlibrary-card-print">'
-			. '<h1>' . esc_html__( 'Connect Community Church Library', 'connectlibrary' ) . '</h1>'
 			. '<p class="borrower-name">' . esc_html( $name ) . '</p>'
 			. $child_context
-			. '<p class="card-label">' . esc_html( $label ) . '</p>'
-			. '<div class="codes">' . $qr_result . $bc_result . '</div>'
-			. '<p class="privacy-note">' . esc_html__( 'Opaque library token only. No personal data.', 'connectlibrary' ) . '</p>'
+			. '<p class="card-label"><span class="card-label-prefix">' . esc_html__( 'CL #', 'connectlibrary' ) . '</span> ' . esc_html( $label ) . '</p>'
+			. '<div class="codes"><div class="qr-wrap">' . $qr_result . '</div><div class="barcode-wrap">' . $bc_result . '</div></div>'
 			. '</section>';
 	}
 
@@ -695,6 +703,19 @@ final class PrintLibraryCardsPage {
 	}
 
 	/** Human-readable borrower type label. */
+	private function category_choices(): array {
+		return array(
+			'in_person' => __( 'In person', 'connectlibrary' ),
+			'online'    => __( 'Online', 'connectlibrary' ),
+			'other'     => __( 'Other', 'connectlibrary' ),
+		);
+	}
+
+	private function category_label( string $category ): string {
+		$choices = $this->category_choices();
+		return $choices[ $category ] ?? $category;
+	}
+
 	private function type_label( string $type ): string {
 		return match ( $type ) {
 			'child'   => __( 'Child/youth', 'connectlibrary' ),

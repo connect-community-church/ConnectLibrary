@@ -61,7 +61,7 @@ final class BorrowerRepository {
 	/**
 	 * Full-text search borrowers by display name, preferred name, or email.
 	 *
-	 * Supports optional 'status' and 'borrower_type' filter keys.
+	 * Supports optional 'status', 'borrower_type', and 'borrower_category' filter keys.
 	 *
 	 * @param array<string,string> $args Search/filter arguments.
 	 * @return array<int,array<string,mixed>>
@@ -96,6 +96,13 @@ final class BorrowerRepository {
 			);
 		}
 
+		if ( '' !== (string) ( $args['borrower_category'] ?? '' ) ) {
+			$category = (string) $args['borrower_category'];
+			$rows     = array_values(
+				array_filter( $rows, static fn( array $r ): bool => (string) ( $r['borrower_category'] ?? 'in_person' ) === $category )
+			);
+		}
+
 		return $rows;
 	}
 
@@ -123,6 +130,30 @@ final class BorrowerRepository {
 	}
 
 	/**
+	 * Find the first active borrower with the given email address.
+	 *
+	 * @param string $email Email address.
+	 * @return array<string,mixed>|null Borrower row, or null if not found.
+	 */
+	public function find_active_by_email( string $email ): ?array {
+		$email = strtolower( trim( $email ) );
+		if ( '' === $email ) {
+			return null;
+		}
+
+		foreach ( $this->all() as $row ) {
+			if ( 'active' !== (string) ( $row['status'] ?? '' ) ) {
+				continue;
+			}
+			if ( strtolower( (string) ( $row['email'] ?? '' ) ) === $email ) {
+				return $row;
+			}
+		}
+
+		return null;
+	}
+
+	/**
 	 * Return all borrower rows.
 	 *
 	 * @return array<int,array<string,mixed>>
@@ -131,7 +162,7 @@ final class BorrowerRepository {
 		global $wpdb;
 
 		$tables = Schema::table_names();
-		$rows   = $wpdb->get_results( "SELECT * FROM {$tables['borrowers']} ORDER BY id ASC", ARRAY_A );
+		$rows   = $wpdb->get_results( "SELECT * FROM {$tables['borrowers']} ORDER BY LOWER(display_name) ASC, id ASC", ARRAY_A );
 
 		return is_array( $rows ) ? $rows : array();
 	}

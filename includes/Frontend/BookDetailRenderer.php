@@ -79,10 +79,14 @@ final class BookDetailRenderer {
 
 		$title = (string) ( $post->post_title ?? '' );
 
+		$notice       = PublicReservationRequests::get_notice();
+		$has_success  = is_array( $notice ) && 'success' === ( $notice['type'] ?? '' );
+		$action_panel = $has_success ? '' : $this->action_panel( $post_id, $availability );
+
 		$sidebar = $this->cover_section( $post_id, $title )
 			. $this->status_section( $availability )
-			. $this->notice_section()
-			. $this->action_panel( $post_id, $availability );
+			. $this->notice_section( $notice )
+			. $action_panel;
 
 		$main_parts = array(
 			$this->authors_section( $post_id ),
@@ -417,19 +421,29 @@ final class BookDetailRenderer {
 	 * a privacy-safe success or error banner.  Returns empty string when no
 	 * notice is pending so existing pages are unaffected.
 	 *
+	 * @param array{type:string,message:string}|null $notice Pending notice from PublicReservationRequests.
 	 * @return string HTML string, or empty string when no notice is pending.
 	 */
-	private function notice_section(): string {
-		$notice = PublicReservationRequests::get_notice();
+	private function notice_section( ?array $notice = null ): string {
+		if ( null === $notice ) {
+			$notice = PublicReservationRequests::get_notice();
+		}
 		if ( null === $notice ) {
 			return '';
 		}
 
-		$type    = 'error' === ( $notice['type'] ?? '' ) ? 'error' : 'success';
-		$message = esc_html( (string) ( $notice['message'] ?? '' ) );
+		$type       = 'error' === ( $notice['type'] ?? '' ) ? 'error' : 'success';
+		$message    = esc_html( (string) ( $notice['message'] ?? '' ) );
+		$role       = 'error' === $type ? 'alert' : 'status';
+		$heading    = 'error' === $type ? esc_html__( 'Request problem', 'connectlibrary' ) : esc_html__( 'Request received', 'connectlibrary' );
+		$next_steps = 'success' === $type
+			? '<p class="connectlibrary-book__notice-next">' . esc_html__( 'We have your request. Please do not submit it again; the library team will follow up with you.', 'connectlibrary' ) . '</p>'
+			: '';
 
-		return '<div class="connectlibrary-book__notice connectlibrary-book__notice--' . esc_attr( $type ) . '">'
-			. $message
+		return '<div class="connectlibrary-book__notice connectlibrary-book__notice--' . esc_attr( $type ) . '" role="' . esc_attr( $role ) . '" tabindex="-1">'
+			. '<strong class="connectlibrary-book__notice-title">' . $heading . '</strong>'
+			. '<span class="connectlibrary-book__notice-message">' . $message . '</span>'
+			. $next_steps
 			. '</div>';
 	}
 
@@ -571,13 +585,17 @@ final class BookDetailRenderer {
 	 * @return string HTML string.
 	 */
 	private function guest_request_form( int $post_id ): string {
-		$action_url = esc_url( get_permalink( $post_id ) );
-		$nonce      = esc_attr( wp_create_nonce( PublicReservationRequests::guest_nonce_action( $post_id ) ) );
-		$book_id    = esc_attr( (string) $post_id );
-		$honeypot   = esc_attr( PublicReservationRequests::HONEYPOT_FIELD );
+		$action_url   = esc_url( get_permalink( $post_id ) );
+		$nonce        = esc_attr( wp_create_nonce( PublicReservationRequests::guest_nonce_action( $post_id ) ) );
+		$book_id      = esc_attr( (string) $post_id );
+		$honeypot     = esc_attr( PublicReservationRequests::HONEYPOT_FIELD );
+		$register_url = esc_url( home_url( '/register/' ) );
+		$login_url    = esc_url( function_exists( 'wp_login_url' ) ? \wp_login_url( get_permalink( $post_id ) ) : home_url( '/wp-login.php' ) );
 
 		return '<div class="connectlibrary-book__reserve-panel">'
 			. '<h2 class="connectlibrary-book__section-heading">' . esc_html__( 'Request this book', 'connectlibrary' ) . '</h2>'
+			. '<p class="connectlibrary-book__reserve-intro">' . esc_html__( 'Want to borrow this from the church library? Create an account to become a library patron automatically, log in if you already have one, or continue below as a guest request.', 'connectlibrary' ) . '</p>'
+			. '<p class="connectlibrary-book__account-prompt"><a href="' . $register_url . '">' . esc_html__( 'Create account', 'connectlibrary' ) . '</a><span aria-hidden="true"> · </span><a href="' . $login_url . '">' . esc_html__( 'Log in', 'connectlibrary' ) . '</a><span aria-hidden="true"> · </span><span>' . esc_html__( 'or continue as guest below', 'connectlibrary' ) . '</span></p>'
 			. '<form method="post" action="' . $action_url . '" class="connectlibrary-book__guest-form">'
 			. '<input type="hidden" name="connectlibrary_action" value="guest_request">'
 			. '<input type="hidden" name="connectlibrary_book_id" value="' . $book_id . '">'
@@ -603,8 +621,9 @@ final class BookDetailRenderer {
 			. '<textarea id="cl_guest_note" name="cl_guest_note" rows="3"></textarea>'
 			. '</div>'
 			. '<button type="submit" class="connectlibrary-book__reserve-button">'
-			. esc_html__( 'Send Request', 'connectlibrary' )
+			. esc_html__( 'Ask to borrow this book', 'connectlibrary' )
 			. '</button>'
+			. '<p class="connectlibrary-book__reserve-privacy">' . esc_html__( 'Your details are only used so our library team can respond to this request.', 'connectlibrary' ) . '</p>'
 			. '</form>'
 			. '</div>';
 	}

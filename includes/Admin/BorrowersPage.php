@@ -190,8 +190,9 @@ final class BorrowersPage {
 	 */
 	private function render_filter_form( array $current ): void {
 		$search = (string) ( $current['search'] ?? '' );
-		$status = (string) ( $current['status'] ?? '' );
-		$type   = (string) ( $current['borrower_type'] ?? '' );
+		$status   = (string) ( $current['status'] ?? '' );
+		$type     = (string) ( $current['borrower_type'] ?? '' );
+		$category = (string) ( $current['borrower_category'] ?? '' );
 		?>
 		<form method="get" action="<?php echo esc_url( admin_url( 'edit.php' ) ); ?>">
 			<input type="hidden" name="post_type" value="<?php echo esc_attr( \ConnectLibrary\Catalog\BookPostType::POST_TYPE ); ?>" />
@@ -209,6 +210,12 @@ final class BorrowersPage {
 					<option value=""><?php echo esc_html__( 'All types', 'connectlibrary' ); ?></option>
 					<?php foreach ( $this->type_choices() as $value => $label ) : ?>
 						<option value="<?php echo esc_attr( $value ); ?>" <?php selected( $type, $value ); ?>><?php echo esc_html( $label ); ?></option>
+					<?php endforeach; ?>
+				</select>
+				<select name="borrower_category">
+					<option value=""><?php echo esc_html__( 'All categories', 'connectlibrary' ); ?></option>
+					<?php foreach ( $this->category_choices() as $value => $label ) : ?>
+						<option value="<?php echo esc_attr( $value ); ?>" <?php selected( $category, $value ); ?>><?php echo esc_html( $label ); ?></option>
 					<?php endforeach; ?>
 				</select>
 				<button type="submit" class="button"><?php echo esc_html__( 'Filter', 'connectlibrary' ); ?></button>
@@ -284,6 +291,10 @@ final class BorrowersPage {
 		if ( '' !== $type ) {
 			$args['borrower_type'] = $type;
 		}
+		$category = sanitize_key( wp_unslash( $_GET['borrower_category'] ?? '' ) );
+		if ( '' !== $category ) {
+			$args['borrower_category'] = $category;
+		}
 
 		return $args;
 	}
@@ -302,6 +313,7 @@ final class BorrowersPage {
 				<tr>
 					<th scope="col"><?php echo esc_html__( 'Name', 'connectlibrary' ); ?></th>
 					<th scope="col"><?php echo esc_html__( 'Type', 'connectlibrary' ); ?></th>
+					<th scope="col"><?php echo esc_html__( 'Category', 'connectlibrary' ); ?></th>
 					<th scope="col"><?php echo esc_html__( 'Contact', 'connectlibrary' ); ?></th>
 					<th scope="col"><?php echo esc_html__( 'WordPress link', 'connectlibrary' ); ?></th>
 					<th scope="col"><?php echo esc_html__( 'Guardian', 'connectlibrary' ); ?></th>
@@ -311,12 +323,13 @@ final class BorrowersPage {
 			</thead>
 			<tbody>
 				<?php if ( array() === $borrowers ) : ?>
-					<tr><td colspan="7"><?php echo esc_html__( 'No borrowers yet.', 'connectlibrary' ); ?></td></tr>
+					<tr><td colspan="8"><?php echo esc_html__( 'No borrowers yet.', 'connectlibrary' ); ?></td></tr>
 				<?php endif; ?>
 				<?php foreach ( $borrowers as $borrower ) : ?>
 					<tr>
 						<th scope="row"><a href="<?php echo esc_url( add_query_arg( array( 'borrower_id' => (int) $borrower['id'] ), $this->page_url() ) ); ?>"><?php echo esc_html( (string) ( $borrower['display_name'] ?? '' ) ); ?></a></th>
 						<td><?php echo esc_html( $this->type_label( (string) ( $borrower['borrower_type'] ?? '' ) ) ); ?></td>
+						<td><?php echo esc_html( $this->category_label( (string) ( $borrower['borrower_category'] ?? 'in_person' ) ) ); ?></td>
 						<td><?php echo esc_html( $this->contact_summary( $borrower ) ); ?></td>
 						<td><?php echo esc_html( $this->wp_link_summary( $borrower ) ); ?></td>
 						<td><?php echo esc_html( $this->guardian_summary( $borrower, $borrower_map ) ); ?></td>
@@ -384,11 +397,7 @@ final class BorrowersPage {
 			<p><strong><?php echo esc_html__( 'No active card', 'connectlibrary' ); ?></strong></p>
 		<?php endif; ?>
 		<div class="connectlibrary-card-actions">
-			<?php $this->render_card_action_form( $borrower_id, null === $active ? 'generate' : 'reprint', null === $active ? __( 'Generate first card', 'connectlibrary' ) : __( 'Print active card', 'connectlibrary' ) ); ?>
-			<?php if ( null !== $active ) : ?>
-				<?php $this->render_lost_card_replacement_form( $borrower_id ); ?>
-				<?php $this->render_card_action_form( $borrower_id, 'disable', __( 'Disable card', 'connectlibrary' ) ); ?>
-			<?php endif; ?>
+			<?php $this->render_card_action_form( $borrower_id, null === $active ? 'generate' : 'reprint', null === $active ? __( 'Issue and print card', 'connectlibrary' ) : __( 'Print card', 'connectlibrary' ) ); ?>
 		</div>
 		<?php if ( array() !== $cards ) : ?>
 			<table class="widefat striped"><thead><tr><th><?php echo esc_html__( 'Card', 'connectlibrary' ); ?></th><th><?php echo esc_html__( 'Status', 'connectlibrary' ); ?></th><th><?php echo esc_html__( 'Created', 'connectlibrary' ); ?></th></tr></thead><tbody>
@@ -460,9 +469,36 @@ final class BorrowersPage {
 		if ( is_wp_error( $html ) ) {
 			wp_die( esc_html( $html->get_error_message() ) );
 		}
+		$is_sheet = null === $card;
 		?>
 		<!doctype html><html><head><meta charset="utf-8" /><title><?php echo esc_html__( 'Print library cards', 'connectlibrary' ); ?></title>
-		<style>.connectlibrary-card-sheet{display:flex;flex-wrap:wrap;gap:16px}.connectlibrary-card-print{border:1px solid #333;border-radius:8px;padding:12px;width:320px;break-inside:avoid;font-family:sans-serif}.borrower-name{font-size:18px;font-weight:700}.codes{display:flex;gap:8px;align-items:center}.privacy-note{font-size:11px;color:#555}@media print{button{display:none}}</style></head><body>
+		<style>
+			@page{size:letter;margin:.35in}
+			body{margin:.35in;font-family:sans-serif;background:#fff;color:#000}
+			.connectlibrary-card-sheet{display:flex;flex-wrap:wrap;gap:0;align-content:flex-start}
+			.connectlibrary-card-print{box-sizing:border-box;break-inside:avoid;page-break-inside:avoid;font-family:sans-serif;background:#fff;overflow:hidden;color:#000}
+			.borrower-name{font-weight:700;line-height:1.1;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+			.card-label{font-weight:700;color:#111;line-height:1;text-align:center}
+			.card-label-prefix{font-weight:600;color:#555}
+			.codes{display:flex;flex-direction:column;align-items:center;justify-content:flex-start}
+			.qr-wrap svg,.qr-wrap img{display:block}
+			.barcode-wrap svg{display:block;max-width:100%}
+			body.cl-sheet .connectlibrary-card-print{width:2.5in;height:1.9in;border:1px dashed #333;border-radius:0;padding:5px}
+			body.cl-sheet .borrower-name{font-size:12px;margin:0 0 2px}
+			body.cl-sheet .card-label{font-size:10px;margin:0 0 3px}
+			body.cl-sheet .codes{gap:3px;margin-top:1px}
+			body.cl-sheet .qr-wrap svg,body.cl-sheet .qr-wrap img{width:.92in!important;height:.92in!important}
+			body.cl-sheet .barcode-wrap svg{width:2.05in!important;height:.42in!important}
+			body.cl-single .connectlibrary-card-print{width:3.5in;height:2.25in;border:1px solid #333;border-radius:8px;padding:10px}
+			body.cl-single .connectlibrary-card-print h1{font-size:12px;margin:0 0 4px;font-weight:700;text-align:center;letter-spacing:.02em}
+			body.cl-single .borrower-name{font-size:17px;margin:0 0 3px}
+			body.cl-single .card-label{font-size:11px;margin:0 0 4px}
+			body.cl-single .codes{gap:3px;margin-top:1px}
+			body.cl-single .qr-wrap svg,body.cl-single .qr-wrap img{width:.74in!important;height:.74in!important}
+			body.cl-single .barcode-wrap svg{width:2.35in!important;height:.36in!important}
+			body.cl-single .privacy-note{font-size:8px;color:#555;margin:4px 0 0;text-align:center;line-height:1.15}
+			@media print{body{margin:0;padding:0}button{display:none!important}.connectlibrary-card-print{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
+		</style></head><body class="<?php echo $is_sheet ? 'cl-sheet' : 'cl-single'; ?>">
 		<button type="button" onclick="window.print()"><?php echo esc_html__( 'Print', 'connectlibrary' ); ?></button>
 		<?php echo $html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Renderer escapes borrower fields and emits controlled SVG markup. ?>
 		</body></html>
@@ -475,8 +511,9 @@ final class BorrowersPage {
 	 * @param array<string,mixed> $borrower Editing borrower, or empty for create.
 	 */
 	private function render_core_fields( array $borrower ): void {
-		$type   = (string) ( $borrower['borrower_type'] ?? 'manual' );
-		$status = (string) ( $borrower['status'] ?? 'active' );
+		$type     = (string) ( $borrower['borrower_type'] ?? 'manual' );
+		$category = (string) ( $borrower['borrower_category'] ?? 'in_person' );
+		$status   = (string) ( $borrower['status'] ?? 'active' );
 		?>
 		<tr>
 			<th scope="row"><label for="connectlibrary-borrower-type"><?php echo esc_html__( 'Borrower type', 'connectlibrary' ); ?></label></th>
@@ -485,6 +522,14 @@ final class BorrowersPage {
 					<option value="<?php echo esc_attr( $value ); ?>" <?php selected( $type, $value ); ?>><?php echo esc_html( $label ); ?></option>
 				<?php endforeach; ?>
 			</select></td>
+		</tr>
+		<tr>
+			<th scope="row"><label for="connectlibrary-borrower-category"><?php echo esc_html__( 'Borrower category', 'connectlibrary' ); ?></label></th>
+			<td><select id="connectlibrary-borrower-category" name="borrower_category">
+				<?php foreach ( $this->category_choices() as $value => $label ) : ?>
+					<option value="<?php echo esc_attr( $value ); ?>" <?php selected( $category, $value ); ?>><?php echo esc_html( $label ); ?></option>
+				<?php endforeach; ?>
+			</select><p class="description"><?php echo esc_html__( 'Use Online for people who only interact remotely; use In person for people who can pick up books or need printed card sheets.', 'connectlibrary' ); ?></p></td>
 		</tr>
 		<tr>
 			<th scope="row"><label for="connectlibrary-status"><?php echo esc_html__( 'Status', 'connectlibrary' ); ?></label></th>
@@ -557,7 +602,7 @@ final class BorrowersPage {
 
 	/** Return posted borrower data. */
 	private function posted_data(): array {
-		$fields = array( 'borrower_type', 'wp_user_id', 'status', 'display_name', 'preferred_name', 'email', 'phone', 'guardian_borrower_id', 'guardian_name', 'guardian_email', 'guardian_phone', 'guardian_relationship', 'private_notes' );
+		$fields = array( 'borrower_type', 'borrower_category', 'wp_user_id', 'status', 'display_name', 'preferred_name', 'email', 'phone', 'guardian_borrower_id', 'guardian_name', 'guardian_email', 'guardian_phone', 'guardian_relationship', 'private_notes' );
 		$data   = array();
 		foreach ( $fields as $field ) {
 			if ( array_key_exists( $field, $_POST ) ) {
@@ -697,6 +742,15 @@ final class BorrowersPage {
 		);
 	}
 
+	/** Borrower category labels. */
+	private function category_choices(): array {
+		return array(
+			'in_person' => __( 'In person', 'connectlibrary' ),
+			'online'    => __( 'Online', 'connectlibrary' ),
+			'other'     => __( 'Other', 'connectlibrary' ),
+		);
+	}
+
 	/** Borrower status labels. */
 	private function status_choices(): array {
 		return array(
@@ -727,6 +781,13 @@ final class BorrowersPage {
 		$choices = $this->status_choices();
 
 		return $choices[ $status ] ?? $status;
+	}
+
+	/** Label for a category key. */
+	private function category_label( string $category ): string {
+		$choices = $this->category_choices();
+
+		return $choices[ $category ] ?? $category;
 	}
 
 	/** Admin page URL. */

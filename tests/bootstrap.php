@@ -57,6 +57,7 @@ $GLOBALS['connectlibrary_test_current_user_can']   = array();
 $GLOBALS['connectlibrary_test_current_user_id']    = 1;
 $GLOBALS['connectlibrary_test_created_users']      = array();
 $GLOBALS['connectlibrary_test_users']              = array();
+$GLOBALS['connectlibrary_test_user_meta']          = array();
 $GLOBALS['connectlibrary_test_shortcodes']         = array();
 $GLOBALS['connectlibrary_test_blocks']             = array();
 $GLOBALS['connectlibrary_test_registered_scripts'] = array();
@@ -877,6 +878,57 @@ if ( ! function_exists( 'wp_create_user' ) ) {
 		);
 
 		return $user_id;
+	}
+}
+
+if ( ! function_exists( 'wp_update_user' ) ) {
+	function wp_update_user( array $userdata ): int|WP_Error {
+		$user_id = (int) ( $userdata['ID'] ?? 0 );
+		if ( $user_id <= 0 || ! isset( $GLOBALS['connectlibrary_test_users'][ $user_id ] ) ) {
+			return new WP_Error( 'invalid_user_id', 'Invalid user ID.' );
+		}
+		foreach ( $userdata as $key => $value ) {
+			$GLOBALS['connectlibrary_test_users'][ $user_id ]->{$key} = $value;
+		}
+		return $user_id;
+	}
+}
+
+if ( ! function_exists( 'get_user_meta' ) ) {
+	function get_user_meta( int $user_id, string $key = '', bool $single = false ): mixed {
+		if ( '' === $key ) {
+			return $GLOBALS['connectlibrary_test_user_meta'][ $user_id ] ?? array();
+		}
+		$value = $GLOBALS['connectlibrary_test_user_meta'][ $user_id ][ $key ] ?? ( $single ? '' : array() );
+		return $single ? $value : array( $value );
+	}
+}
+
+if ( ! function_exists( 'update_user_meta' ) ) {
+	function update_user_meta( int $user_id, string $meta_key, mixed $meta_value, mixed $prev_value = '' ): int|bool {
+		unset( $prev_value );
+		$GLOBALS['connectlibrary_test_user_meta'][ $user_id ][ $meta_key ] = $meta_value;
+		return true;
+	}
+}
+
+if ( ! function_exists( 'sanitize_user' ) ) {
+	function sanitize_user( string $username, bool $strict = false ): string {
+		$username = strtolower( preg_replace( '/[^A-Za-z0-9_.@-]/', '', $username ) ?? '' );
+		return $strict ? preg_replace( '/[^a-z0-9_.-]/', '', $username ) ?? '' : $username;
+	}
+}
+
+if ( ! function_exists( 'is_user_logged_in' ) ) {
+	function is_user_logged_in(): bool {
+		return get_current_user_id() > 0;
+	}
+}
+
+if ( ! function_exists( 'home_url' ) ) {
+	function home_url( string $path = '', string|null $scheme = null ): string {
+		unset( $scheme );
+		return 'https://example.test' . ( str_starts_with( $path, '/' ) ? $path : '/' . $path );
 	}
 }
 

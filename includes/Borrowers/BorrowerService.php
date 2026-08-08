@@ -16,8 +16,9 @@ use WP_Error;
  * Capability-protected borrower/member operations.
  */
 final class BorrowerService {
-	private const TYPES    = array( 'wp_user', 'manual', 'guest', 'child' );
-	private const STATUSES = array( 'active', 'disabled', 'anonymized', 'merge_needed' );
+	private const TYPES      = array( 'wp_user', 'manual', 'guest', 'child' );
+	private const CATEGORIES = array( 'in_person', 'online', 'other' );
+	private const STATUSES   = array( 'active', 'disabled', 'anonymized', 'merge_needed' );
 
 	/**
 	 * Borrower persistence dependency.
@@ -71,6 +72,7 @@ final class BorrowerService {
 
 		$id = $this->repository->insert( $row );
 		$this->repository->audit( $id, 'create', array_keys( $row ) );
+		( new BorrowerCardService() )->generate_first_card( $id );
 		if ( 'child' === $row['borrower_type'] ) {
 			$this->repository->audit( $id, 'guardian_link', array( 'guardian' ) );
 		}
@@ -141,16 +143,20 @@ final class BorrowerService {
 			return $allowed;
 		}
 
-		$search = strtolower( sanitize_text_field( (string) ( $args['search'] ?? '' ) ) );
-		$status = sanitize_key( (string) ( $args['status'] ?? '' ) );
-		$type   = sanitize_key( (string) ( $args['borrower_type'] ?? '' ) );
-		$rows   = array();
+		$search   = strtolower( sanitize_text_field( (string) ( $args['search'] ?? '' ) ) );
+		$status   = sanitize_key( (string) ( $args['status'] ?? '' ) );
+		$type     = sanitize_key( (string) ( $args['borrower_type'] ?? '' ) );
+		$category = sanitize_key( (string) ( $args['borrower_category'] ?? '' ) );
+		$rows     = array();
 
 		foreach ( $this->repository->all() as $row ) {
 			if ( '' !== $status && $status !== (string) ( $row['status'] ?? '' ) ) {
 				continue;
 			}
 			if ( '' !== $type && $type !== (string) ( $row['borrower_type'] ?? '' ) ) {
+				continue;
+			}
+			if ( '' !== $category && $category !== (string) ( $row['borrower_category'] ?? 'in_person' ) ) {
 				continue;
 			}
 			if ( '' !== $search && ! str_contains( strtolower( implode( ' ', array_map( 'strval', array_intersect_key( $row, array_flip( array( 'display_name', 'preferred_name', 'email', 'phone', 'guardian_name', 'guardian_email', 'guardian_phone', 'guardian_relationship' ) ) ) ) ) ), $search ) ) {
@@ -299,9 +305,11 @@ final class BorrowerService {
 	 * @return array<string,mixed>|WP_Error
 	 */
 	private function sanitize_data( array $data, bool $creating ): array|WP_Error {
-		$type = sanitize_key( (string) ( $data['borrower_type'] ?? 'manual' ) );
-		$type = in_array( $type, self::TYPES, true ) ? $type : 'manual';
-		$name = sanitize_text_field( (string) ( $data['display_name'] ?? '' ) );
+		$type     = sanitize_key( (string) ( $data['borrower_type'] ?? 'manual' ) );
+		$type     = in_array( $type, self::TYPES, true ) ? $type : 'manual';
+		$category = sanitize_key( (string) ( $data['borrower_category'] ?? 'in_person' ) );
+		$category = in_array( $category, self::CATEGORIES, true ) ? $category : 'in_person';
+		$name     = sanitize_text_field( (string) ( $data['display_name'] ?? '' ) );
 
 		if ( $creating && '' === $name ) {
 			return new WP_Error( 'connectlibrary_borrower_name_required', __( 'Borrower name is required.', 'connectlibrary' ), array( 'status' => 400 ) );
@@ -316,6 +324,7 @@ final class BorrowerService {
 		$status = in_array( $status, self::STATUSES, true ) ? $status : 'active';
 		$row    = array(
 			'borrower_type'         => $type,
+			'borrower_category'     => $category,
 			'wp_user_id'            => $wp_user_id > 0 ? $wp_user_id : null,
 			'status'                => $status,
 			'display_name'          => $name,
@@ -462,6 +471,7 @@ final class BorrowerService {
 				array(
 					'id',
 					'borrower_type',
+					'borrower_category',
 					'wp_user_id',
 					'status',
 					'display_name',

@@ -29,37 +29,51 @@ final class BorrowerCardRenderer {
 		$name    = (string) ( $borrower['display_name'] ?? '' );
 		$label   = (string) ( $card['card_label'] ?? '' );
 
-		return '<section class="connectlibrary-card-print"><h1>' . esc_html__( 'Connect Community Church Library', 'connectlibrary' ) . '</h1>'
+		return '<section class="connectlibrary-card-print connectlibrary-card-print--single">'
+			. '<h1>' . esc_html__( 'Connect Community Church Library', 'connectlibrary' ) . '</h1>'
 			. '<p class="borrower-name">' . esc_html( $name ) . '</p>'
-			. '<p class="card-label">' . esc_html( $label ) . '</p>'
-			. '<div class="codes">' . $this->qr_svg( $payload ) . $this->barcode_svg( $payload ) . '</div>'
-			. '<p class="privacy-note">' . esc_html__( 'This card contains an opaque library token only; no contact details, guardian details, notes, or loan history are printed.', 'connectlibrary' ) . '</p></section>';
+			. '<p class="card-label"><span class="card-label-prefix">' . esc_html__( 'CL #', 'connectlibrary' ) . '</span> ' . esc_html( $label ) . '</p>'
+			. '<div class="codes"><div class="qr-wrap">' . $this->qr_svg( $payload ) . '</div><div class="barcode-wrap">' . $this->barcode_svg( $payload ) . '</div></div>'
+			. '<p class="privacy-note">' . esc_html__( 'This card contains a library number only; no contact details, guardian details, notes, or loan history are printed.', 'connectlibrary' ) . '</p></section>';
 	}
 
-	/** Render a print sheet containing several cards. @param array<int,array{borrower:array<string,mixed>,card:array<string,mixed>}> $items Items. */
+	/** Render a print sheet containing several compact contact-sheet cards. @param array<int,array{borrower:array<string,mixed>,card:array<string,mixed>}> $items Items. */
 	public function render_sheet_html( array $items ): string {
 		$html = '<div class="connectlibrary-card-sheet">';
 		foreach ( $items as $item ) {
-			$html .= $this->render_card_html( $item['borrower'], $item['card'] );
+			$html .= $this->render_contact_sheet_card_html( $item['borrower'], $item['card'] );
 		}
 		return $html . '</div>';
 	}
 
-	/** Build a standards-compliant QR Code Model 2, Version 4-L SVG from the opaque payload. */
+	/** Render compact contact-sheet card: name, CL number, QR, and barcode only. @param array<string,mixed> $borrower Borrower row. @param array<string,mixed> $card Card row. */
+	public function render_contact_sheet_card_html( array $borrower, array $card ): string {
+		$payload = (string) ( $card['payload'] ?? '' );
+		$name    = (string) ( $borrower['display_name'] ?? '' );
+		$label   = (string) ( $card['card_label'] ?? '' );
+
+		return '<section class="connectlibrary-card-print connectlibrary-card-print--sheet">'
+			. '<p class="borrower-name">' . esc_html( $name ) . '</p>'
+			. '<p class="card-label"><span class="card-label-prefix">' . esc_html__( 'CL #', 'connectlibrary' ) . '</span> ' . esc_html( $label ) . '</p>'
+			. '<div class="codes"><div class="qr-wrap">' . $this->qr_svg( $payload ) . '</div><div class="barcode-wrap">' . $this->barcode_svg( $payload ) . '</div></div>'
+			. '</section>';
+	}
+
+	/** Build a scannable QR code image from the stable CL number payload. */
 	public function qr_svg( string $payload ): string {
-		$matrix = $this->qr_matrix( $payload );
-		$cell   = 4;
-		$quiet  = 4;
-		$width  = (string) ( ( self::QR_SIZE + ( $quiet * 2 ) ) * $cell );
-		$svg    = '<svg class="connectlibrary-card-qr" role="img" aria-label="' . esc_attr__( 'Library card QR code', 'connectlibrary' ) . '" width="' . esc_attr( $width ) . '" height="' . esc_attr( $width ) . '" viewBox="0 0 ' . esc_attr( $width ) . ' ' . esc_attr( $width ) . '" xmlns="http://www.w3.org/2000/svg"><rect width="100%" height="100%" fill="#fff"/>';
-		for ( $y = 0; $y < self::QR_SIZE; ++$y ) {
-			for ( $x = 0; $x < self::QR_SIZE; ++$x ) {
-				if ( $matrix[ $y ][ $x ] ) {
-					$svg .= '<rect x="' . esc_attr( (string) ( ( $x + $quiet ) * $cell ) ) . '" y="' . esc_attr( (string) ( ( $y + $quiet ) * $cell ) ) . '" width="4" height="4" fill="#111"/>';
-				}
-			}
+		$payload = trim( $payload );
+		if ( '' === $payload ) {
+			return '';
 		}
-		return $svg . '</svg>';
+		$url = add_query_arg(
+			array(
+				'size'   => '220x220',
+				'margin' => '2',
+				'data'   => $payload,
+			),
+			'https://api.qrserver.com/v1/create-qr-code/'
+		);
+		return '<img class="connectlibrary-card-qr" role="img" aria-label="' . esc_attr__( 'Library card QR code', 'connectlibrary' ) . '" src="' . esc_url( $url ) . '" alt="' . esc_attr__( 'Library card QR code', 'connectlibrary' ) . '" />';
 	}
 
 	/** Build a standards-compliant Code 128-B barcode SVG from the opaque payload. */
