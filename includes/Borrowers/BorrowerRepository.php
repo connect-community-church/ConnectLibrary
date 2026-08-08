@@ -162,7 +162,7 @@ final class BorrowerRepository {
 		global $wpdb;
 
 		$tables = Schema::table_names();
-		$rows   = $wpdb->get_results( "SELECT * FROM {$tables['borrowers']} ORDER BY id ASC", ARRAY_A );
+		$rows   = $wpdb->get_results( "SELECT * FROM {$tables['borrowers']} ORDER BY LOWER(display_name) ASC, id ASC", ARRAY_A );
 
 		return is_array( $rows ) ? $rows : array();
 	}
