@@ -10,20 +10,20 @@
 /* ── Layout ────────────────────────────────────────────────────────────── */
 
 .connectlibrary-book {
-	display: flex;
-	flex-wrap: wrap;
-	gap: 1.5rem;
+	display: grid;
+	grid-template-columns: minmax(160px, 220px) minmax(0, 1fr);
+	gap: clamp(1.5rem, 4vw, 3rem);
 	align-items: flex-start;
-	margin-bottom: 2rem;
+	margin: 0 auto 2.5rem;
+	max-width: 980px;
 }
 
 .connectlibrary-book__sidebar {
-	flex: 0 0 180px;
-	max-width: 180px;
+	position: sticky;
+	top: 1.5rem;
 }
 
 .connectlibrary-book__main {
-	flex: 1 1 300px;
 	min-width: 0;
 }
 
@@ -95,6 +95,169 @@
 .connectlibrary-book__status--unavailable {
 	color: #555;
 	background: #f3f3f3;
+}
+
+/* ── Request / reserve panel ────────────────────────────────────────────── */
+
+.connectlibrary-book__reserve-panel {
+	margin-top: 1rem;
+	padding: 1rem;
+	border: 1px solid rgba(28, 68, 112, 0.16);
+	border-radius: 12px;
+	background: linear-gradient(180deg, #ffffff 0%, #f6f9fc 100%);
+	box-shadow: 0 10px 24px rgba(28, 45, 68, 0.08);
+}
+
+.connectlibrary-book__reserve-panel .connectlibrary-book__section-heading {
+	margin-bottom: 0.35rem;
+	font-size: 1.25rem;
+}
+
+.connectlibrary-book__reserve-intro,
+.connectlibrary-book__reserve-privacy {
+	margin: 0 0 0.9rem;
+	font-size: 0.92rem;
+	line-height: 1.45;
+	color: #4c5a6a;
+}
+
+.connectlibrary-book__account-prompt {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.35rem;
+	align-items: center;
+	margin: 0 0 1rem;
+	padding: 0.7rem 0.8rem;
+	border-radius: 10px;
+	background: #eaf3fb;
+	color: #1c4976;
+	font-size: 0.9rem;
+	font-weight: 700;
+}
+
+.connectlibrary-book__account-prompt a {
+	color: #123f68;
+	text-decoration: underline;
+	text-underline-offset: 2px;
+}
+
+.connectlibrary-book__reserve-privacy {
+	margin: 0.7rem 0 0;
+	font-size: 0.8rem;
+}
+
+.connectlibrary-book__guest-form {
+	display: grid;
+	gap: 0.75rem;
+}
+
+.connectlibrary-book__hp-field {
+	position: absolute !important;
+	width: 1px !important;
+	height: 1px !important;
+	padding: 0 !important;
+	margin: -1px !important;
+	overflow: hidden !important;
+	clip: rect(0, 0, 0, 0) !important;
+	clip-path: inset(50%) !important;
+	white-space: nowrap !important;
+	border: 0 !important;
+}
+
+.connectlibrary-book__form-field label {
+	display: block;
+	margin-bottom: 0.25rem;
+	font-size: 0.88rem;
+	font-weight: 700;
+	color: #263548;
+}
+
+.connectlibrary-book__form-field input,
+.connectlibrary-book__form-field textarea {
+	width: 100%;
+	min-height: 2.55rem;
+	padding: 0.55rem 0.7rem;
+	border: 1px solid #c8d4e3;
+	border-radius: 8px;
+	background: #fff;
+	box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.04);
+	font: inherit;
+}
+
+.connectlibrary-book__form-field textarea {
+	min-height: 5.5rem;
+	resize: vertical;
+}
+
+.connectlibrary-book__form-field input:focus,
+.connectlibrary-book__form-field textarea:focus {
+	border-color: #1f64a6;
+	box-shadow: 0 0 0 3px rgba(31, 100, 166, 0.16);
+	outline: none;
+}
+
+.connectlibrary-book__reserve-button {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 100%;
+	min-height: 2.8rem;
+	padding: 0.7rem 1rem;
+	border: 0;
+	border-radius: 999px;
+	background: #1c4976;
+	color: #fff;
+	font-weight: 800;
+	line-height: 1.2;
+	cursor: pointer;
+	box-shadow: 0 8px 18px rgba(28, 73, 118, 0.2);
+}
+
+.connectlibrary-book__reserve-button:hover,
+.connectlibrary-book__reserve-button:focus {
+	background: #163a5e;
+	color: #fff;
+	transform: translateY(-1px);
+}
+
+.connectlibrary-book__notice {
+	display: block;
+	margin: 1rem 0;
+	padding: 1rem;
+	border: 2px solid currentColor;
+	border-radius: 12px;
+	font-size: 1rem;
+	font-weight: 700;
+	line-height: 1.45;
+	box-shadow: 0 12px 28px rgba(28, 45, 68, 0.14);
+}
+
+.connectlibrary-book__notice--success {
+	color: #145c2d;
+	background: #e6f7ea;
+	border-color: #238447;
+}
+
+.connectlibrary-book__notice--error {
+	color: #8a1f17;
+	background: #fff0ed;
+	border-color: #c0392b;
+}
+
+.connectlibrary-book__notice-title,
+.connectlibrary-book__notice-message {
+	display: block;
+}
+
+.connectlibrary-book__notice-title {
+	margin-bottom: 0.25rem;
+	font-size: 1.15rem;
+}
+
+.connectlibrary-book__notice-next {
+	margin: 0.65rem 0 0;
+	font-size: 0.92rem;
+	font-weight: 600;
 }
 
 /* ── Metadata label prefix ──────────────────────────────────────────────── */
@@ -196,6 +359,63 @@
 	text-decoration: underline;
 }
 
+/* ── Native book archive polish ─────────────────────────────────────────── */
+
+.post-type-archive-connectlibrary_book .connectlibrary_book-archive .entry-list-item {
+	list-style: none;
+}
+
+.post-type-archive-connectlibrary_book .connectlibrary_book-archive .loop-entry {
+	height: 100%;
+	border: 1px solid rgba(28, 68, 112, 0.12);
+	border-radius: 14px;
+	overflow: hidden;
+	box-shadow: 0 10px 26px rgba(28, 45, 68, 0.08);
+	transition: transform 160ms ease, box-shadow 160ms ease;
+}
+
+.post-type-archive-connectlibrary_book .connectlibrary_book-archive .loop-entry:hover,
+.post-type-archive-connectlibrary_book .connectlibrary_book-archive .loop-entry:focus-within {
+	transform: translateY(-3px);
+	box-shadow: 0 18px 36px rgba(28, 45, 68, 0.12);
+}
+
+.post-type-archive-connectlibrary_book .connectlibrary_book-archive .post-thumbnail-inner {
+	background: #eef3f8;
+}
+
+.post-type-archive-connectlibrary_book .connectlibrary_book-archive .entry-content-wrap {
+	padding: 1rem 1rem 1.15rem;
+}
+
+.post-type-archive-connectlibrary_book .connectlibrary_book-archive .entry-title {
+	margin-bottom: 0.5rem;
+	font-size: 1.12rem;
+	line-height: 1.2;
+}
+
+.post-type-archive-connectlibrary_book .connectlibrary_book-archive .entry-title a {
+	color: #1d2d42;
+	text-decoration: none;
+}
+
+.post-type-archive-connectlibrary_book .connectlibrary_book-archive .entry-summary {
+	font-size: 0.92rem;
+	line-height: 1.5;
+	color: #465468;
+}
+
+.post-type-archive-connectlibrary_book .connectlibrary_book-archive .more-link-wrap a,
+.post-type-archive-connectlibrary_book .connectlibrary_book-archive .entry-footer a {
+	display: inline-flex;
+	align-items: center;
+	margin-top: 0.75rem;
+	font-weight: 800;
+	font-size: 0.82rem;
+	letter-spacing: 0.02em;
+	color: #1c4976;
+}
+
 /* Focus styles — preserve theme defaults; only ensure visibility */
 .connectlibrary-book__back-link:focus,
 .connectlibrary-book__term-link:focus {
@@ -207,11 +427,11 @@
 
 @media (max-width: 600px) {
 	.connectlibrary-book {
-		flex-direction: column;
+		grid-template-columns: 1fr;
 	}
 
 	.connectlibrary-book__sidebar {
-		flex: 0 0 auto;
-		max-width: 160px;
+		position: static;
+		max-width: 220px;
 	}
 }

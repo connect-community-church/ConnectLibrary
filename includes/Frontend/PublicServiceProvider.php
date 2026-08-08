@@ -85,10 +85,10 @@ final class PublicServiceProvider {
 	}
 
 	/**
-	 * Enqueue the minimal book detail stylesheet on single book pages.
+	 * Enqueue public library styles on single book pages and the book archive.
 	 */
 	public function enqueue_styles(): void {
-		if ( ! is_singular( BookPostType::POST_TYPE ) ) {
+		if ( ! is_singular( BookPostType::POST_TYPE ) && ! \is_post_type_archive( BookPostType::POST_TYPE ) ) {
 			return;
 		}
 

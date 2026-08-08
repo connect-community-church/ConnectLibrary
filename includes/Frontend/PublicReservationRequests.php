@@ -400,7 +400,7 @@ final class PublicReservationRequests {
 
 		self::$notice = array(
 			'type'    => 'success',
-			'message' => __( 'Your request has been received. A librarian will be in touch.', 'connectlibrary' ),
+			'message' => __( 'Request received. A librarian will be in touch.', 'connectlibrary' ),
 		);
 	}
 

@@ -7,6 +7,7 @@
 
 namespace ConnectLibrary;
 
+use ConnectLibrary\Account\AccountRegistrationService;
 use ConnectLibrary\Admin\BookMetadataMetaboxes;
 use ConnectLibrary\Admin\AuditHistoryPage;
 use ConnectLibrary\Admin\BorrowersPage;
@@ -127,6 +128,13 @@ final class Plugin {
 	private PublicServiceProvider $public_frontend;
 
 	/**
+	 * Public account/registration foundation.
+	 *
+	 * @var AccountRegistrationService
+	 */
+	private AccountRegistrationService $account_registration;
+
+	/**
 	 * Create the plugin coordinator.
 	 */
 	private function __construct() {
@@ -143,6 +151,7 @@ final class Plugin {
 		$this->setup_wizard            = new SetupWizard();
 		$this->catalog                 = new CatalogServiceProvider();
 		$this->public_frontend         = new PublicServiceProvider();
+		$this->account_registration    = new AccountRegistrationService();
 	}
 
 	/**
@@ -164,6 +173,7 @@ final class Plugin {
 		DueReminderCron::register();
 		$this->catalog->register();
 		$this->public_frontend->register();
+		$this->account_registration->register();
 
 		if ( is_admin() ) {
 			$this->status_screen->register();

@@ -255,6 +255,7 @@ final class PublicReservationRequestsTest extends TestCase {
 		$notice = PublicReservationRequests::get_notice();
 		self::assertNotNull( $notice );
 		self::assertSame( 'success', $notice['type'] );
+		self::assertStringContainsString( 'Request received', $notice['message'] );
 
 		$rows = $GLOBALS['connectlibrary_test_db_tables'][ $this->res_table ];
 		self::assertCount( 1, $rows );
@@ -501,6 +502,9 @@ final class PublicReservationRequestsTest extends TestCase {
 		self::assertStringContainsString( 'guest_request', $html );
 		self::assertStringContainsString( 'cl_guest_email', $html );
 		self::assertStringContainsString( 'cl_guest_name', $html );
+		self::assertStringContainsString( 'Create account', $html );
+		self::assertStringContainsString( '/register/', $html );
+		self::assertStringContainsString( 'or continue as guest below', $html );
 		self::assertStringNotContainsString( 'reserve_hold', $html );
 	}
 
@@ -534,6 +538,29 @@ final class PublicReservationRequestsTest extends TestCase {
 		// 'checked_out' maps to the 'waitlist' action; unauthenticated users see the guest request form.
 		self::assertStringContainsString( 'cl_guest_email', $html );
 		self::assertStringNotContainsString( 'reserve_hold', $html );
+	}
+
+	public function test_renderer_shows_prominent_success_notice_and_hides_guest_form_after_guest_request(): void {
+		$book_id = $this->create_book();
+
+		$_POST = array(
+			'connectlibrary_action'                      => 'guest_request',
+			'connectlibrary_book_id'                     => (string) $book_id,
+			PublicReservationRequests::NONCE_FIELD_GUEST => 'connectlibrary_guest_request_' . $book_id,
+			PublicReservationRequests::HONEYPOT_FIELD    => '',
+			'cl_guest_name'                              => 'Jane Smith',
+			'cl_guest_email'                             => 'jane@example.com',
+		);
+		$this->make_handler()->handle_post();
+
+		$html = ( new BookDetailRenderer() )->render( $book_id, '' );
+
+		self::assertStringContainsString( 'connectlibrary-book__notice--success', $html );
+		self::assertStringContainsString( 'role="status"', $html );
+		self::assertStringContainsString( 'Request received', $html );
+		self::assertStringContainsString( 'We have your request', $html );
+		self::assertStringNotContainsString( 'name="connectlibrary_action" value="guest_request"', $html );
+		self::assertStringNotContainsString( 'Ask to borrow this book', $html );
 	}
 
 	public function test_renderer_shows_success_notice_after_hold_placed(): void {

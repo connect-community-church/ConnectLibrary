@@ -9,7 +9,7 @@ declare( strict_types=1 );
 
 namespace ConnectLibrary\Tests\Unit;
 
-// phpcs:disable Squiz.Commenting.FunctionComment.Missing
+// phpcs:disable Squiz.Commenting.FunctionComment.Missing,Generic.Commenting.DocComment.MissingShort,Squiz.Commenting.FunctionComment.WrongStyle,Squiz.Commenting.InlineComment.InvalidEndChar,Generic.Formatting.MultipleStatementAlignment.NotSameWarning,WordPress.Arrays.MultipleStatementAlignment.DoubleArrowNotAligned
 
 use ConnectLibrary\Borrowers\BorrowerService;
 use ConnectLibrary\Borrowers\GuestAccessTokenService;
@@ -315,7 +315,7 @@ final class MyLibraryPageTest extends TestCase {
 		$html = ( new MyLibraryPage() )->render_shortcode();
 
 		self::assertStringNotContainsString( 'renew-form', $html );
-		self::assertStringNotContainsString( 'type="submit"', $html );
+		self::assertStringNotContainsString( 'name="renewal_token"', $html );
 	}
 
 	public function test_renewal_post_with_valid_nonce_shows_success_notice(): void {
@@ -552,6 +552,45 @@ final class MyLibraryPageTest extends TestCase {
 
 		self::assertStringNotContainsString( 'Other Child', $html );
 		self::assertStringNotContainsString( 'Other Child Book', $html );
+	}
+
+	public function test_guardian_can_add_child_borrower_from_my_library(): void {
+		$guardian = $this->create_wp_user_borrower( 77, 'Guardian Reader' );
+		$GLOBALS['connectlibrary_test_current_user_id'] = 77;
+		$_POST = array(
+			'connectlibrary_action' => 'add_child',
+			'_cl_child_nonce'       => 'connectlibrary-add-child',
+			'child_name'            => 'New Child',
+		);
+
+		$html = ( new MyLibraryPage() )->render_shortcode();
+
+		self::assertStringContainsString( 'child-success', $html );
+		self::assertStringContainsString( 'New Child', $html );
+		$children = array_filter(
+			$GLOBALS['connectlibrary_test_db_tables'][ $this->tables['borrowers'] . ':rows' ] ?? array(),
+			static fn( array $row ): bool => 'child' === (string) ( $row['borrower_type'] ?? '' ) && (int) ( $row['guardian_borrower_id'] ?? 0 ) === (int) $guardian['id']
+		);
+		self::assertCount( 1, $children );
+	}
+
+	public function test_my_library_shows_self_service_card_generation_and_printable_card(): void {
+		$this->create_wp_user_borrower( 77, 'Adult Reader' );
+		$GLOBALS['connectlibrary_test_current_user_id'] = 77;
+		$_POST = array(
+			'connectlibrary_action' => 'generate_card',
+			'_cl_card_nonce'        => 'connectlibrary-generate-card',
+			'card_borrower'         => 'self',
+		);
+
+		$html = ( new MyLibraryPage() )->render_shortcode();
+
+		self::assertStringContainsString( 'card-success', $html );
+		self::assertStringContainsString( 'Connect Community Church Library', $html );
+		self::assertStringContainsString( 'connectlibrary-card-qr', $html );
+		self::assertStringContainsString( 'connectlibrary-card-barcode', $html );
+		self::assertStringNotContainsString( 'adult@example.test', $html );
+		self::assertStringNotContainsString( 'wp_user_id', $html );
 	}
 
 	// -------------------------------------------------------------------------
